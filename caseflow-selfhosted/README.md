@@ -1,112 +1,76 @@
-# CaseFlow — self-hosted
+# CaseFlow
 
-A small Node server + browser app that turns a set of pasted case documents
-into a structured, source-linked legal workflow — using **your own**
-Anthropic API key. No claude.ai account or extension needed to run it;
-just Node and a key.
+**The AI operating system for legal workflows — give us the case, we'll give you the workflow.**
 
-Your API key stays on the server. The browser talks to `localhost`, and
-this server talks to `api.anthropic.com` — the key is never sent to, or
-readable from, the browser.
+---
 
-## Setup
+## Project Summary
 
-**1. Install Node.js 18 or later** if you don't have it: https://nodejs.org
+CaseFlow turns a folder of messy case documents — emails, contracts, notices, invoices, correspondence — into a structured, source-linked, **executable legal workflow**. Instead of asking an AI "what does this document mean?", a legal team hands CaseFlow the whole case and gets back the operational answer: what happened, what still needs to happen, what evidence is missing, what deadlines are approaching, who needs to act, and what can safely be automated.
 
-**2. Install dependencies**
+It is explicitly **not** an AI lawyer and not another document summarizer. Every extracted fact is traceable to its source, every contradiction is surfaced for human review instead of silently resolved, and every draft that requires legal judgment is flagged **Human Review Required** before it can be approved and sent.
+
+## Problem & Solution
+
+**The problem.** Legal operations teams lose enormous time doing the same manual work on every matter: reading through scattered documents to reconstruct what happened, hunting for every deadline and obligation buried in contract clauses and email threads, catching contradictions between what a contract says and what a counterparty claims, chasing down evidence that was referenced but never delivered, and drafting the same categories of follow-up communications over and over. A single missed date or overlooked clause can delay or damage an entire case — and none of this is a document-understanding problem so much as a *workflow* problem.
+
+**The solution.** CaseFlow treats a case as a graph, not a pile of files. Given a set of documents, it:
+
+- Reconstructs a **chronological case timeline**, every event linked back to the document and excerpt it came from
+- Extracts **obligations and deadlines** (payment terms, response windows, notice periods) and computes concrete due dates
+- Runs **conflict detection** across documents — e.g. a contract says 30 days, a later email says 15 — and routes contradictions to a human instead of guessing
+- Runs a **Missing Evidence Engine** that flags what's referenced but not on file, and can generate the client request to go get it
+- Produces a **Case Readiness Score** and a **Risk Engine** view of what's likely to cause a missed deadline or procedural failure
+- Generates the **next operational workflow** as an editable process map, mixing automated steps with steps explicitly marked for human approval
+- Drafts the routine communications (requests, acknowledgments, responses) that workflow implies — nothing sends without approval
+
+Every one of these is produced by a live call to Claude analyzing the actual text provided, grounded in a strict "cite your source, lower your confidence if unsure, never invent facts" instruction set — not hardcoded or templated per case.
+
+## How It Works
+
+```
+Documents (pasted text)
+      │
+      ▼
+Prompted extraction (Claude, structured JSON output)
+      │
+      ▼
+Case graph: parties · documents · timeline · obligations
+      │
+      ├──▶ Conflict Detection ──▶ held for human review
+      ├──▶ Missing Evidence Engine ──▶ client request drafts
+      ├──▶ Risk Engine ──▶ ranked by severity
+      │
+      ▼
+Workflow Generator ──▶ editable process map
+      │
+      ▼
+AI-Assisted Drafting ──▶ Human Review Required gate ──▶ Approve & send
+```
+
+## Tech Stack
+
+- **Frontend:** vanilla HTML/CSS/JS (no framework) — a custom design system ("The Ledger": forest green, brass, ivory paper, Fraunces + IBM Plex typography)
+- **AI:** Claude (`claude-sonnet-4-6`) via the Anthropic Messages API, prompted for strict structured JSON output covering parties, timeline, obligations, conflicts, evidence, risk, workflow steps, and drafts
+- **Self-hosted backend:** Node.js + Express — holds the API key server-side, builds the extraction prompt, and proxies requests to `api.anthropic.com` so the key is never exposed to the browser
+- **Persistence (demo scope):** browser `localStorage` for the last analyzed case; no database in this build
+- **Design/testing tooling:** Playwright (headless Chromium) used during development to catch rendering bugs before shipping
+
+## What's Real vs. What's a Hackathon Shortcut
+
+**Real:** the analysis itself. Nothing in the dashboard — timeline, obligations, conflicts, evidence gaps, risk items, workflow steps, or drafts — is hardcoded. It's produced by Claude reading whatever text is pasted in, for whatever case is given to it.
+
+**Shortcuts, scoped for the hackathon:**
+- No OCR/file parsing — plain text in, not PDFs/DOCX/images directly
+- No database or multi-user auth — single-session, browser-local state
+- One-shot analysis per case, not a multi-step agent or RAG pipeline
+- No e-signature/e-filing integration for actually executing approved actions
+
+## Setup (self-hosted version)
 
 ```bash
+cd caseflow-selfhosted
 npm install
+cp .env.example .env        # then add your ANTHROPIC_API_KEY
+npm start                   # → http://localhost:3000
 ```
-
-**3. Add your API key**
-
-```bash
-cp .env.example .env
-```
-
-Open `.env` and set:
-
-```
-ANTHROPIC_API_KEY=sk-ant-your-real-key-here
-```
-
-Get a key at https://console.anthropic.com/settings/keys (you'll need a
-billing method on the account — this calls the paid API, not a free tier).
-
-**4. Start the server**
-
-```bash
-npm start
-```
-
-**5. Open the app**
-
-Go to **http://localhost:3000** in your browser.
-
-## Using it
-
-- Click **"Load an example case"** to try it immediately with a sample
-  payment-dispute matter, or add your own documents (paste plain text —
-  contracts, emails, notices, invoices, whatever you have).
-- Click **Analyze case**. This sends your documents to `/api/analyze` on
-  your local server, which calls the Claude API (model: `claude-sonnet-4-6`)
-  and returns a structured case: timeline, obligations, conflicts, missing
-  evidence, risk items, a proposed workflow, and draft communications.
-- Mark a document as **"a newer version of"** another one to also get a
-  semantic Impact Analysis between the two versions.
-- Approving a draft, marking evidence received, or resolving a conflict
-  updates the case state and the Audit Trail live, in your browser.
-- Your last analyzed case is saved to `localStorage` in your browser, so
-  reloading the page won't lose it. Nothing is stored server-side.
-
-## Cost
-
-Each analysis is one Claude API call (model `claude-sonnet-4-6`,
-`max_tokens: 8000`). Cost depends on how much document text you paste in
-plus the length of the response — typically a few cents per analysis at
-current API pricing. Check https://docs.claude.com for current rates.
-
-## What's real here vs. what's a shortcut
-
-Real: the analysis. Every case you get back is actually produced by Claude
-reading the text you provided — nothing about the extracted timeline,
-obligations, conflicts, evidence gaps, risks, or drafts is hardcoded.
-
-Shortcuts, for a hackathon/demo scope:
-- **No OCR / file parsing.** You paste plain text; there's no PDF, DOCX, or
-  image ingestion pipeline. Copy the text out of your documents first.
-- **No database.** Case state lives in the browser (`localStorage`) and is
-  lost if you clear site data. A real product would persist cases,
-  documents, and audit history server-side, per user.
-- **No auth / multi-user.** This is a single-user local tool. There's no
-  login, and anyone with access to your machine and `localhost:3000` can
-  use it (and spend your API credits).
-- **One-shot analysis.** Each "Analyze case" is a single, fairly large
-  prompt-and-response — not a multi-step agent, not RAG over a vector
-  database, and it doesn't re-check its own conflict/evidence findings
-  in a second pass.
-
-## Project structure
-
-```
-server.js        — Express server; holds the API key; builds the prompt;
-                    calls api.anthropic.com; serves the frontend
-public/
-  index.html      — app shell (intake screen + dashboard)
-  style.css       — design system ("The Ledger")
-  app.js          — intake logic, dashboard rendering, calls /api/analyze
-.env.example      — copy to .env and add your key
-package.json
-```
-
-## Troubleshooting
-
-- **"No ANTHROPIC_API_KEY found"** — you haven't created `.env`, or the
-  server needs restarting after you added the key.
-- **"Anthropic rejected the API key"** — double check you copied the full
-  key into `.env` with no extra spaces or quotes.
-- **"The model's response was not valid JSON"** — rare; just click
-  Analyze case again. Check the terminal running `npm start` for the raw
-  output if it keeps happening.
-- Port 3000 already in use — set `PORT=3001` (or any free port) in `.env`.
