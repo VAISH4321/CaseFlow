@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CaseFlow — The AI Operating System for Legal Workflows</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><text y=%2218%22 font-size=%2218%22>⚖️</text></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ============================================================
+     INTAKE SCREEN
+     ============================================================ -->
+<div id="intake">
+  <div class="intake-hero">
+    <div class="intake-hero-inner">
+      <div class="mark-row">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 5.5C4 4.67 4.67 4 5.5 4H15l5 5v9.5c0 .83-.67 1.5-1.5 1.5h-14A1.5 1.5 0 0 1 4 18.5v-13Z"/><path d="M14 4v5h5"/><path d="M8 13h8M8 16.5h5"/></svg>
+        <span>CASEFLOW · LEGAL OPERATIONS LAYER</span>
+      </div>
+      <h1 class="intake-h1">Give us the case. <em>We'll give you the workflow.</em></h1>
+      <p class="intake-sub">Paste in the emails, contracts, notices and correspondence for a matter below. CaseFlow reconstructs the timeline, extracts every obligation and deadline, flags contradictions and missing evidence, and proposes the next executable, human-approved workflow — analyzed live, from whatever you give it.</p>
+    </div>
+  </div>
+
+  <div class="intake-body">
+    <div class="resume-strip" id="resume-strip" style="display:none;">
+      <span id="resume-strip-text"></span>
+      <button class="btn-ghost" id="resume-btn" style="background:var(--brass-soft);border-color:var(--brass-soft);color:var(--forest-deep);">Resume case →</button>
+    </div>
+
+    <div class="intake-panel">
+      <div class="intake-panel-head">
+        <h3>Case documents</h3>
+        <span style="font-size:11.5px;color:var(--slate);">Plain text only — paste content or type it in</span>
+      </div>
+      <div class="intake-panel-body">
+        <div class="case-name-row">
+          <label>Matter name<br><span style="font-size:10px;">(optional)</span></label>
+          <input class="field" id="case-name-input" placeholder="Leave blank and CaseFlow will infer one from the documents">
+        </div>
+
+        <div id="doc-cards"></div>
+
+        <button class="add-doc-btn" id="add-doc-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> Add another document</button>
+
+        <div class="intake-actions">
+          <button class="btn-brass" id="analyze-btn">Analyze case <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12h15M13 5l7 7-7 7"/></svg></button>
+          <button class="btn-ghost" id="example-btn">Load an example case</button>
+        </div>
+
+        <div class="analyze-status" id="analyze-status">
+          <div class="spinner"></div>
+          <span id="analyze-status-text">Reading documents…</span>
+        </div>
+        <div class="analyze-error" id="analyze-error"></div>
+
+        <div class="intake-foot">
+          <span style="font-size:11.5px;color:var(--slate);">Every extracted fact links back to the document it came from. Nothing here is sent anywhere without your approval.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     APP SHELL (dashboard, shown after analysis)
+     ============================================================ -->
+<div id="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 5.5C4 4.67 4.67 4 5.5 4H15l5 5v9.5c0 .83-.67 1.5-1.5 1.5h-14A1.5 1.5 0 0 1 4 18.5v-13Z"/><path d="M14 4v5h5"/><path d="M8 13h8M8 16.5h5"/></svg>
+      <div><div class="brand-name">CaseFlow</div><div class="brand-tag">LEGAL OPS LAYER</div></div>
+    </div>
+    <div class="case-chip">
+      <div class="num" id="sidebar-case-num">—</div>
+      <div class="name" id="sidebar-case-name">—</div>
+    </div>
+    <button class="new-case-btn" id="back-to-intake-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> Analyze a different case</button>
+    <nav class="nav" id="nav"></nav>
+    <div class="sidebar-foot">Every fact traces to a source.<br>Nothing sends without approval.</div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <button class="mobile-menu-btn btn btn-sm" id="mobile-menu-btn" style="margin-right:12px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      <div class="topbar-title"><h1 id="view-title">Case overview</h1><div class="sub" id="view-sub"></div></div>
+      <div class="topbar-right"><div class="avatar">CF</div></div>
+    </div>
+    <div id="views"></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL — Source & Confidence
+     ============================================================ -->
+<div class="modal-backdrop" id="modal-backdrop">
+  <div class="modal">
+    <div class="modal-head"><h4 id="modal-title">Source & confidence</h4><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
